@@ -1,35 +1,41 @@
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.File;
 import java.util.Scanner;
 import java.util.Random;
-
 public class ModemBankSimulation {
   private PriorityQueue<Event> eventQueue;
   private RegularQueue<Integer> waitingQueue;
   private int numModems;
   private int queueCapacity;
-
   public static void main(String[] args) {
     Scanner scanner = new Scanner(System.in);
+    String anotherSimulation;
 
-    System.out.println("Enter the length of the simulation:");
-    int lengthOfSimulation = scanner.nextInt();
+    do {
+      System.out.println("Enter the length of the simulation:");
+      int lengthOfSimulation = scanner.nextInt();
 
-    System.out.println("Enter the average time between dial-in attempts:");
-    double averageDialInTime = scanner.nextDouble();
+      System.out.println("Enter the average time between dial-in attempts:");
+      double averageDialInTime = scanner.nextDouble();
 
-    System.out.println("Enter the average connection time:");
-    int averageConnectionTime = scanner.nextInt();
+      System.out.println("Enter the average connection time:");
+      int averageConnectionTime = scanner.nextInt();
 
-    System.out.println("Enter the number of modems in the bank:");
-    int numModems = scanner.nextInt();
+      System.out.println("Enter the number of modems in the bank:");
+      int numModems = scanner.nextInt();
 
-    System.out.println("Enter the size of the waiting queue or -1 for an infinite queue:");
-    int queueCapacity = scanner.nextInt();
+      System.out.println("Enter the size of the waiting queue or -1 for an infinite queue:");
+      int queueCapacity = scanner.nextInt();
 
-    ModemBankSimulation simulation = new ModemBankSimulation();
-    simulation.runSimulation(lengthOfSimulation, averageDialInTime, averageConnectionTime, numModems, queueCapacity);
+      ModemBankSimulation simulation = new ModemBankSimulation();
+      simulation.runSimulation(lengthOfSimulation, averageDialInTime, averageConnectionTime, numModems, queueCapacity);
+
+      System.out.println("Do you want to run another simulation? (yes/no)");
+      anotherSimulation = scanner.next();
+
+    } while (anotherSimulation.equalsIgnoreCase("yes"));
 
     scanner.close();
   }
@@ -37,7 +43,7 @@ public class ModemBankSimulation {
   public void runSimulation(int lengthOfSimulation, double averageDialInTime, int averageConnectionTime,
       int numModems, int queueCapacity) {
     this.eventQueue = new PriorityQueue<>();
-    this.waitingQueue = new RegularQueue<>(queueCapacity == -1 ? Integer.MAX_VALUE : queueCapacity);
+    this.waitingQueue = new RegularQueue<>(queueCapacity == -1 ? 100 : queueCapacity, queueCapacity == -1); // Start with a reasonable size if infinite
     this.numModems = numModems;
     this.queueCapacity = queueCapacity;
 
@@ -45,7 +51,7 @@ public class ModemBankSimulation {
     for (int i = 0; i < lengthOfSimulation; i++) {
       int numDialInEvents = (int) (rand.nextFloat() < averageDialInTime ? 1 : 0);
       for (int j = 0; j < numDialInEvents; j++) {
-        eventQueue.offer(new Event(i, "DIAL_IN", i));  // Updated this line
+        eventQueue.offer(new Event(i, "DIAL_IN", i));
       }
     }
 
@@ -72,7 +78,7 @@ public class ModemBankSimulation {
         int userId = waitingQueue.poll();
         totalWaitTime += (currentTime - userId);
         int connectionTime = rand.nextInt(averageConnectionTime) + 1;
-        eventQueue.offer(new Event(currentTime + connectionTime, "HANG_UP", currentTime + connectionTime));  // Updated this line
+        eventQueue.offer(new Event(currentTime + connectionTime, "HANG_UP", currentTime + connectionTime));
         totalModemBusyTime += connectionTime;
         numModems--;
       }
@@ -85,14 +91,22 @@ public class ModemBankSimulation {
 
     System.out.println("Average wait time: " + averageWaitTime);
     System.out.println("Modem usage percentage: " + modemUsagePercentage);
-    System.out.println("Remaining users in queue: " + waitingQueue.size());  // Updated this line
+    System.out.println("Remaining users in queue: " + waitingQueue.size());
 
     try (BufferedWriter writer = new BufferedWriter(new FileWriter("report.txt", true))) {
-      writer.write(lengthOfSimulation + "\t" + averageDialInTime + "\t" + averageConnectionTime + "\t" +
-          numModems + "\t" + queueCapacity + "\t" + averageWaitTime + "\t" + modemUsagePercentage + "\t" +
-          waitingQueue.size() + "\n");  // Updated this line
+      File f = new File("report.txt");
+      if (f.length() == 0) {
+        writer.write("  1- Length of simulation\n  2- Average time between dial-in attempts\n   3- Average connection time\n   4- Number of modems in the bank\n  5- Size of the waiting queue, -1 for an infinite queue\n  6- Averge wait time\n   7- Percentage of time modems were busy\n  8- Number of customers left in the waiting queue\n ");
+        writer.write("    1   |    2   |    3   |    4   |    5   |     6     |     7     |    8\n");
+        writer.write("-----------------------------------------------------------------------------\n");
+      }
+      writer.write(String.format("%5d   | %5.1f  | %5.1f  | %5d  | %5d  | %9.2f  | %9.2f  | %5d\n",
+          lengthOfSimulation, averageDialInTime, (double) averageConnectionTime, numModems, queueCapacity,
+          averageWaitTime, modemUsagePercentage, waitingQueue.size()));
     } catch (IOException e) {
       e.printStackTrace();
     }
+    System.out.println("Simulation is complete: Summary in file report.txt");
+
   }
 }
