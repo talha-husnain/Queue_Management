@@ -126,7 +126,6 @@ public class ModemBankSimulation {
 
             currentTime++;
         }
-
         // Calculating and displaying results of the simulation.
         double averageWaitTime = (totalUsers > 0) ? (double) totalWaitTime / totalUsers : 0;
         double modemUsagePercentage = (numModems > 0) ? (double) totalModemBusyTime / (numModems * lengthOfSimulation) * 100 : 0;
